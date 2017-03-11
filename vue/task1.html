@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+
+</body>
+<script>
+    //1.当对象的某个属性变化的时候，如何触发自定义的回掉函数
+    //Object.defineProperty,通过这个方法，可以自定义getter和setter函数
+    //从而获取对象属性和设置对象属性的时候能执行自定义的回调函数
+    //2.对象往往是一个深层次的结构，对象的属性还是一个对象
+    //需要用递归算法，如果对象的属性还是对象，继续new 一个Observer
+
+    //观察者构造函数
+    function Observer(data){
+        this.data=data;
+        this.watcher(data);
+    }
+
+    Observer.prototype.watcher=function(obj){
+        let val;
+        for(let key in obj){
+            //用hasOwnProperty进行过滤
+            //for...in会把对象原型链上的所有可枚举属性都循环出来
+            //我们只想要这个对象本身拥有的属性
+            if(obj.hasOwnProperty(key)){
+                val=obj[key];
+                //如果没有循环到最底层，继续new Observer
+                if(typeof val==='object'){
+                    new Observer(val);
+                }
+                this.convert(key,val);
+            }
+        }
+    };
+    //设置访问器属性，当属性被访问时，或者设置了新值，都会打印出消息
+    Observer.prototype.convert=function(key,val){
+        Object.defineProperty(
+                this.data,key,{
+                    //enumerable:表示能否通过for in枚举
+                    enumerable:true,
+                    //configurable:能否通过delete删除属性
+                    configurable:true,
+                    get:function(){
+                        console.log('你访问了'+key);
+                        return val;
+                    },
+                    set:function(newVal){
+                        console.log("你设置了"+key);
+                        console.log("新的"+key+'='+newVal);
+                        if(newVal===val){
+                            return;
+                        }
+                        val=newVal;
+                    }
+                }
+        )
+    };
+    let data={
+        user:{
+            name:"liuzhenzhen",
+            age:"25"
+        },
+        address:{
+            city:"深圳"
+        }
+    };
+    let app=new Observer(data);
+</script>
+</html>
