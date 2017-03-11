@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+
+</body>
+
+<script>
+    //事件模型
+    function Events(){
+        this.handlers={};
+    }
+    Events.prototype={
+        //订阅事件
+        on:function(eventType,handler){
+            var self=this;
+            if(!(eventType in self.handlers)){
+                self.handlers[eventType]=[];
+            }
+            self.handlers[eventType].push(handler);
+            return this;
+        },
+        //触发事件
+        emit:function(eventType){
+            var self=this;
+            //console.log(arguments);
+            var handlerArgs=Array.prototype.slice.call(arguments,1);
+            console.log(handlerArgs);
+            for(var i=0;i<self.handlers[eventType].length;i++){
+                self.handlers[eventType][i].apply(self,handlerArgs);
+            }
+            return self;
+        },
+        //移除事件
+        off:function(eventType){
+            var self=this;
+            for(let key in self.handlers){
+                if(self.handlers.hasOwnProperty(key)&&key===eventType){
+                    delete self.handlers[key];
+                }
+            }
+        }
+    };
+    function Observer(data){
+        this.data=data;
+        this.watcher(data);
+        //new 一个Events的实例
+        this.eventsBus=new Events();
+    }
+
+    Observer.prototype.watcher=function(obj){
+        let val;
+        for(let key in obj){
+            //用hasOwnProperty进行过滤
+            //for...in会把对象原型链上的所有可枚举属性都循环出来
+            //我们只想要这个对象本身拥有的属性
+            if(obj.hasOwnProperty(key)){
+                val=obj[key];
+                //如果没有循环到最底层，继续new Observer
+                if(typeof val==='object'){
+                    new Observer(val);
+                }
+                this.convert(key,val);
+            }
+        }
+    };
+    Observer.prototype.$watch=function(attr,callback){
+        this.eventsBus.on(attr,callback);
+    }
+    //设置访问器属性，当属性被访问时，或者设置了新值，都会打印出消息
+    Observer.prototype.convert=function(key,val){
+        var _this=this;
+        Object.defineProperty(
+                this.data,key,{
+                    //enumerable:表示能否通过for in枚举
+                    enumerable:true,
+                    //configurable:能否通过delete删除属性
+                    configurable:true,
+                    get:function(){
+                        console.log('你访问了'+key);
+                        return val;
+                    },
+                    set:function(newVal){
+                        console.log("你设置了"+key);
+                        console.log("新的"+key+'='+newVal);
+                        _this.eventsBus.emit(key,val,newVal);
+                        /*if(newVal===val){
+                            return;
+                        }*/
+                        if(typeof newVal==='object'){
+                            new Observer(val);
+                        }
+                        val=newVal;
+                    }
+                }
+        )
+    };
+    let data={
+        name:"liuzhenzhen",
+        age:"25",
+        address:{
+            city:"深圳"
+        }
+    };
+
+    let app=new Observer(data);
+    app.$watch('name',function(oldVal,newVal){
+       console.log('我的名字变了，原来是:'+oldVal+',现在是:'+newVal);
+    });
+</script>
+</html>
