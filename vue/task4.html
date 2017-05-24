@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<!-- 页面中原本的 html 模板片段 -->
+<div id="app">
+    <input type="text" id="a">
+    <span id="b"></span>
+</div>
+<!-- 最终在页面中渲染出来的结果
+<div id="app">
+    <p>姓名：youngwind</p>
+    <p>年龄：25</p>
+</div>
+ -->
+
+</body>
+<script>
+
+    var dom=nodeToFragment(document.getElementById('app'));
+    console.log(dom);
+    function nodeToFragment(node,vm){
+        var flag=document.createDocumentFragment();
+        var child;
+        while(child=node.firstChild){
+            compile(child,vm);
+            flag.append(child);//劫持node的所有子节点
+        }
+        return flag;
+    }
+    document.getElementById('app').appendChild(dom);//返回到app中
+    function compile(node,vm){
+        var reg=/\{\{(.*)\}\}/;
+        //节点类型为元素
+        if(node.nodeType===1){
+            var attr=node.attributes;
+            //解析属性
+            for(var i=0;i<attr.length;i++){
+                if(attr[i].nodeName=='v-model'){
+                    var name=attr[i].nodeValue;//获取v-model绑定的属性名
+                    node.value=vm.data[name];//将data的值赋给该node
+                    node.removeAttribute('v-model');
+                }
+            };
+        }
+        //节点类型为text
+        if(node.nodeType===3){
+            if(reg.test(node.nodeValue)){
+                var name=RegExp.$1;//获取匹配到的字符串
+                name=name.trim();
+                node.nodeValue=vm.data[name];//将data的值赋给该node
+
+            }
+        }
+    }
+    function Vue(options){
+        this.data=options.data;
+        var id=options.el;
+        var dom=nodeToFragment(document.getElementById(id),this);
+        //编译完成之后，将dom返回到app
+        document.getElementById(id).appendChild(dom);
+    }
+    var vm=new Vue({
+        el:'app',
+        data:{
+            text:'hello world'
+        }
+    })
+</script>
+</html>
